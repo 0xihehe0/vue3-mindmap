@@ -7,9 +7,11 @@ import {
   onBeforeUnmount
 } from 'vue'
 import type { MindNode } from '../types/mindmap'
-import { mockMindMap } from '../mock/mindmap'
 
-const rootNode = ref<MindNode>(mockMindMap)
+// 从父组件传入根节点
+const props = defineProps<{
+  root: MindNode
+}>()
 
 interface Line {
   id: string
@@ -19,7 +21,7 @@ interface Line {
 
 // ======= 选中 / 拖拽节点 =======
 
-const selectedId = ref<string | null>('root')
+const selectedId = ref<string | null>(props.root.id)
 
 const draggingNodeId = ref<string | null>(null)
 const dragState = ref({
@@ -82,7 +84,7 @@ const genId = () =>
   Math.random().toString(16).slice(2)
 
 const removeNodeById = (id: string) => {
-  if (id === rootNode.value.id) return
+  if (id === props.root.id) return
 
   const dfs = (node: MindNode): boolean => {
     if (!node.children) return false
@@ -99,11 +101,11 @@ const removeNodeById = (id: string) => {
     return node.children.some(child => dfs(child))
   }
 
-  dfs(rootNode.value)
+  dfs(props.root)
 }
 
 const addChildNode = (parentId: string) => {
-  const parent = findNodeById(rootNode.value, parentId)
+  const parent = findNodeById(props.root, parentId)
   if (!parent) return
 
   const childIndex = parent.children?.length ?? 0
@@ -133,7 +135,7 @@ const flatNodes = computed<MindNode[]>(() => {
     node.children?.forEach(child => dfs(child))
   }
 
-  dfs(rootNode.value)
+  dfs(props.root)
   return result
 })
 
@@ -151,7 +153,7 @@ const lines = computed<Line[]>(() => {
     })
   }
 
-  walk(rootNode.value)
+  walk(props.root)
   return result
 })
 
@@ -162,10 +164,9 @@ const handleCanvasClick = () => {
   hideContextMenu()
 }
 
-// 画布上的鼠标按下：如果按着空格键，就开始平移
 const handleCanvasMouseDown = (e: MouseEvent) => {
   if (!isSpacePressed.value) return
-  if (e.button !== 0) return // 只响应左键
+  if (e.button !== 0) return
   e.preventDefault()
 
   isPanning.value = true
@@ -190,11 +191,13 @@ const handlePanMouseMove = (e: MouseEvent) => {
 
 const handlePanMouseUp = () => {
   isPanning.value = false
-  window.removeEventListener('mousemove', handlePanMouseMove)
+  window.removeEventListener(
+    'mousemove',
+    handlePanMouseMove
+  )
   window.removeEventListener('mouseup', handlePanMouseUp)
 }
 
-// 滚轮缩放（以画布中心为基准，简单版）
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
   const delta = e.deltaY
@@ -206,7 +209,7 @@ const handleWheel = (e: WheelEvent) => {
   )
 }
 
-// ======= 交互：节点拖拽 =======
+// ======= 节点拖拽 =======
 
 const handleNodeMouseDown = (
   node: MindNode,
@@ -236,12 +239,11 @@ const handleMouseMove = (e: MouseEvent) => {
   if (!draggingNodeId.value) return
 
   const node = findNodeById(
-    rootNode.value,
+    props.root,
     draggingNodeId.value
   )
   if (!node) return
 
-  // 注意：要除以当前 scale，避免缩放后拖拽速度失真
   const dx =
     (e.clientX - dragState.value.mouseX) / scale.value
   const dy =
@@ -281,7 +283,7 @@ const hideContextMenu = () => {
 const handleMenuRename = () => {
   if (!contextMenu.nodeId) return
   const node = findNodeById(
-    rootNode.value,
+    props.root,
     contextMenu.nodeId
   )
   hideContextMenu()
@@ -303,7 +305,7 @@ const handleMenuDelete = () => {
   const id = contextMenu.nodeId
   hideContextMenu()
 
-  if (id === rootNode.value.id) return
+  if (id === props.root.id) return
 
   removeNodeById(id)
   if (selectedId.value === id) {
@@ -320,7 +322,7 @@ const handleMenuDelete = () => {
 const commitEdit = () => {
   if (!editingId.value) return
   const node = findNodeById(
-    rootNode.value,
+    props.root,
     editingId.value
   )
   if (node) {
@@ -336,11 +338,10 @@ const cancelEdit = () => {
   editTitle.value = ''
 }
 
-// ======= 键盘：只管空格（平移用） =======
+// ======= 键盘：空格用于平移 =======
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.code === 'Space') {
-    // 如果在输入框里打字，就不要拦截空格
     const target = e.target as HTMLElement | null
     const tag = target?.tagName
     if (
@@ -371,7 +372,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('keyup', handleKeyUp)
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
-  window.removeEventListener('mousemove', handlePanMouseMove)
+  window.removeEventListener(
+    'mousemove',
+    handlePanMouseMove
+  )
   window.removeEventListener('mouseup', handlePanMouseUp)
 })
 </script>
@@ -385,7 +389,6 @@ onBeforeUnmount(() => {
       @mousedown="handleCanvasMouseDown"
       @wheel.prevent="handleWheel"
     >
-      <!-- 加 transform 的容器：缩放 + 平移都作用在这里 -->
       <div
         class="canvas-content"
         :style="{
@@ -418,7 +421,6 @@ onBeforeUnmount(() => {
           @mousedown.stop.prevent="handleNodeMouseDown(node, $event)"
           @contextmenu.stop.prevent="handleNodeContextMenu(node, $event)"
         >
-          <!-- 编辑状态 -->
           <template v-if="editingId === node.id">
             <el-input
               v-model="editTitle"
@@ -431,14 +433,13 @@ onBeforeUnmount(() => {
               @blur="commitEdit"
             />
           </template>
-          <!-- 普通状态 -->
           <template v-else>
             {{ node.title }}
           </template>
         </div>
       </div>
 
-      <!-- 右键菜单（注意：用 fixed，坐标用屏幕坐标） -->
+      <!-- 右键菜单 -->
       <div
         v-if="contextMenu.visible"
         class="context-menu"
@@ -482,7 +483,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* 缩放 + 平移容器 */
 .canvas-content {
   width: 100%;
   height: 100%;
@@ -536,7 +536,6 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 
-/* 右键菜单 */
 .context-menu {
   position: fixed;
   z-index: 10;
@@ -572,7 +571,6 @@ onBeforeUnmount(() => {
   background: #fef0f0;
 }
 
-/* 空格按下时，画布整体更像“拖动画布”的感觉 */
 .canvas-inner.is-panning {
   cursor: grab;
 }

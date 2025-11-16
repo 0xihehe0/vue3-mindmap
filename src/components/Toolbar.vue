@@ -2,21 +2,27 @@
  * @Author: yaojinxi 864554492@qq.com
  * @Date: 2025-11-14 16:18:09
  * @LastEditors: yaojinxi 864554492@qq.com
- * @LastEditTime: 2025-11-14 16:18:32
+ * @LastEditTime: 2025-11-16 22:36:17
  * @FilePath: \mindmap-vue3\src\components\Toolbar.vue
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
 <script setup lang="ts">
+const emit = defineEmits<{
+  (e: 'new'): void
+  (e: 'save'): void
+  (e: 'export'): void
+}>()
+
 const handleNew = () => {
-  console.log('新建思维导图')
+  emit('new')
 }
 
 const handleSave = () => {
-  console.log('保存当前导图')
+  emit('save')
 }
 
 const handleExport = () => {
-  console.log('导出为 JSON')
+  emit('export')
 }
 </script>
 
@@ -26,9 +32,17 @@ const handleExport = () => {
       <span class="logo">AI 思维导图</span>
     </div>
     <div class="toolbar-right">
-      <el-button size="small" @click="handleNew">新建</el-button>
-      <el-button size="small" @click="handleSave">保存</el-button>
-      <el-button size="small" type="primary" @click="handleExport">
+      <el-button size="small" @click="handleNew">
+        新建
+      </el-button>
+      <el-button size="small" @click="handleSave">
+        保存
+      </el-button>
+      <el-button
+        size="small"
+        type="primary"
+        @click="handleExport"
+      >
         导出 JSON
       </el-button>
     </div>
