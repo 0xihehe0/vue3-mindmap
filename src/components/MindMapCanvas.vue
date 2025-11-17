@@ -340,6 +340,7 @@ const cancelEdit = () => {
 
 // ======= 键盘：空格用于平移 =======
 
+
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.code === 'Space') {
     const target = e.target as HTMLElement | null
