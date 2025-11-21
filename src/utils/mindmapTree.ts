@@ -1,11 +1,3 @@
-/*
- * @Author: yaojinxi 864554492@qq.com
- * @Date: 2025-11-21 23:45:40
- * @LastEditors: yaojinxi 864554492@qq.com
- * @LastEditTime: 2025-11-21 23:46:26
- * @FilePath: \mindmap-vue3\src\utils\mindmapTree.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 // src/utils/mindmapTree.ts
 import type { MindNode } from '../types/mindmap'
 
@@ -33,11 +25,8 @@ export function genId() {
   )
 }
 
-// 从整棵树中删除指定 id 的节点（连同子树）
-export function removeNodeById(
-  root: MindNode,
-  targetId: string
-) {
+// 删除某个 id 的节点（连同子树）
+export function removeNodeById(root: MindNode, targetId: string) {
   if (root.id === targetId) return // 根节点不删
 
   const dfs = (node: MindNode): boolean => {
@@ -58,7 +47,7 @@ export function removeNodeById(
   dfs(root)
 }
 
-// 在 parentId 对应节点下新增子节点，并返回新节点
+// 在 parentId 下新增子节点，并返回新节点
 export function addChildNode(
   root: MindNode,
   parentId: string
@@ -67,6 +56,7 @@ export function addChildNode(
   if (!parent) return null
 
   const childIndex = parent.children?.length ?? 0
+
   const newNode: MindNode = {
     id: genId(),
     title: '新建节点',
